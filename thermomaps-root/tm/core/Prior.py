@@ -300,13 +300,12 @@ class GlobalEquilibriumHarmonicPrior(LocalEquilibriumHarmonicPrior):
 
     def __init__(
         self,
-        data,
-        temps,
-        fit_key,
-        BOUNDS=BOUNDS,
-        INITIAL_GUESS=INITIAL_GUESS,
-        FIT_FUNCS=FIT_FUNCS,
-        **kwargs
+        data: Dict,
+        fit_key: str = "linear",
+        BOUNDS: Dict[str, tuple] = BOUNDS,
+        INITIAL_GUESS: Dict[str, float] = INITIAL_GUESS,
+        FIT_FUNCS: Dict[str, Callable] = FIT_FUNCS,
+        **kwargs: Any
     ):
         """
         Initialize a GlobalEquilibriumHarmonicPrior.
@@ -325,7 +324,7 @@ class GlobalEquilibriumHarmonicPrior(LocalEquilibriumHarmonicPrior):
         self.cutoff = 1e-2
         self.mult = None
 
-        T = [float(k.split("_")[0]) for k in temps]
+        T = [float(k.split("_")[0]) for k in data.keys()]
         RMSD = np.concatenate([rmsd(v, k) for k, v in data.items()], axis=0)
 
         for i, temp in enumerate(T):
