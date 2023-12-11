@@ -83,6 +83,9 @@ class IsingSwendsenWang:
                     snapshot[name] = obs.evaluate(self.lattice)
                 self.snapshots.append(snapshot)
 
+        snapshot_series_dict = {key: [d[key] for d in self.snapshots] for key in self.snapshots[0]}
+        return snapshot_series_dict
+
     def save_snapshots(self, filename: str, metadata: dict, observables_to_save: list):
         snapshot_series_dict = {key: [d[key] for d in self.snapshots] for key in self.snapshots[0]}
         np.savez_compressed(f"{filename}.npz", **snapshot_series_dict)
