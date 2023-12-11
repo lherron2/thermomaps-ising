@@ -307,13 +307,21 @@ class Loader(Dataset):
         Returns:
             tuple: Control slice, control dimension, and control position.
         """
-        # Create a list of slice objects that select all elements along each dimension
-        control_slice = [slice(None) for _ in range(data_dim)]
+        # # Create a list of slice objects that select all elements along each dimension
+        # control_slice = [slice(None) for _ in range(data_dim)]
 
-        # If control_dims is not None, modify the slice objects for the control dimensions
-        if control_dims is not None:
-            for dim in control_dims:
-                control_slice[dim] = slice(control_dims[0], control_dims[1])
+        # # If control_dims is not None, modify the slice objects for the control dimensions
+        # if control_dims is not None:
+        #     for dim in control_dims:
+        #         control_slice[dim] = slice(control_dims[0], control_dims[1])
+
+
+        if control_axis is None and control_dims is None:
+            control_slice = [slice(None) for _ in range(data_dim)]
+        else:
+            control_slice = [slice(None, None) for _ in range(data_dim)] 
+            for axis in [control_axis]:
+                control_slice[axis] = slice(control_dims[0], control_dims[1])    
 
         return tuple(control_slice)
 
