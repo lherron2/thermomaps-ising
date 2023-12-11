@@ -1,7 +1,9 @@
 import torch
 import os
 import numpy as np
+import logging
 
+logging.basicConfig(level=logging.DEBUG)
 
 def temperature_density_rescaling(std_temp, ref_temp):
     """
@@ -225,12 +227,16 @@ class DiffusionTrainer(DiffusionModel):
                 t_prev = t - 1
                 t_prev[t_prev == -1] = 0
                 weight = self.DP.compute_SNR(t_prev) - self.DP.compute_SNR(t)
+
+                logging.debug(f"{unstd_control}")
+
+
                 noise, noise_pred = self.train_step(
                     b,
                     t,
                     self.prior,
                     batch_size=int(b.shape[0]),
-                    temp=str(unstd_control),
+                    temp=unstd_control,
                     sample_type="from_data",
                     n_dims=int(b.shape[1]) - 1,
                 )
