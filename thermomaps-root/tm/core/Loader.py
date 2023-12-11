@@ -234,10 +234,12 @@ class Loader(Dataset):
 
     def __init__(
         self,
-        directory: Directory,
         num_dims: int = 4,
+        data: torch.Tensor = None,
+        temperatures: np.ndarray = None,
         transform_type: str = "whiten",
-        control_tuple: tuple = ((1), (3, 5)),
+        control_axis: int = 1,
+        control_dims: tuple = (3,5),
         dequantize: bool = False,
         dequantize_type: str = "normal",
         dequantize_scale: float = 1e-2,
@@ -258,34 +260,43 @@ class Loader(Dataset):
             TRANSFORMS (dict, optional): Dictionary of data transforms. Defaults to TRANSFORMS.
             DEQUANTIZERS (dict, optional): Dictionary of dequantization methods. Defaults to DEQUANTIZERS.
         """
-
         # Load data from npz file using path from Directory.
-        self.directory = directory
-        self.data = torch.from_numpy(np.load(self.directory.get_dataset_path())).float()
-        self.temps = np.load(self.directory.temps_path, allow_pickle=True)
+        self.control_tuple = (control_axis, control_dims)
 
+        # Check the type of 'data' and load it accordingly
+        if isinstance(data, str):
+            self.data = torch.from_numpy(np.load(data)).float()
+        elif isinstance(data, torch.Tensor):
+            self.data = data
+
+        # Check the type of 'temperatures' and load it accordingly
+        if isinstance(temperatures, str):
+            self.temps = np.load(temperatures)
+        elif isinstance(temperatures, np.ndarray):
+            self.temps = temperatures
+
+        # If dequantize is True, apply the dequantization
         if dequantize:
             self.dequantizer = DEQUANTIZERS[dequantize_type](dequantize_scale)
             self.data = self.dequantize(self.data)
 
+        # Get the dimensions of the data
         self.data_dim = self.data.shape[-1]
         self.num_channels = self.data.shape[1]
         self.num_dims = len(self.data.shape)
 
-        # Building a slice object to retrieve control params from Tensor
-        (
-            self.control_slice,
-            self.control_dim,
-            self.control_pos,
-        ) = self.build_control_slice(control_tuple, num_dims)
+        # Build slice objects to retrieve control params and batch from Tensor
+        self.control_slice = self.build_control_slice(control_axis, control_dims, num_dims)
         self.batch_slice = self.build_batch_slice(num_dims)
 
+        # Apply the specified transform to the data
         self.transform = TRANSFORMS[transform_type](self.data)
 
+        # Standardize the control data
         self.unstd_control = self.data[self.control_slice][self.batch_slice]
         self.std_control = self.standardize(self.data)[self.batch_slice]
 
-    def build_control_slice(self, control_tuple, data_dim):
+    def build_control_slice(self, control_axis, control_dims, data_dim):
         """
         Builds a slice object to retrieve the control parameters from the tensor.
 
@@ -296,16 +307,15 @@ class Loader(Dataset):
         Returns:
             tuple: Control slice, control dimension, and control position.
         """
-        (control_dim, control_pos) = control_tuple
+        # Create a list of slice objects that select all elements along each dimension
+        control_slice = [slice(None) for _ in range(data_dim)]
 
-        if control_dim is None:
-            control_slice = [slice(None) for dim in range(data_dim)]
-        else:
-            control_slice = [slice(None, None) for dim in range(data_dim)]
-            for dim in control_dim:
-                control_slice[dim] = slice(control_pos[0], control_pos[1])
+        # If control_dims is not None, modify the slice objects for the control dimensions
+        if control_dims is not None:
+            for dim in control_dims:
+                control_slice[dim] = slice(control_axis[0], control_axis[1])
 
-        return tuple(control_slice), control_dim, control_pos
+        return tuple(control_slice)
 
     def build_batch_slice(self, data_dim, batch_dim=0):
         """
