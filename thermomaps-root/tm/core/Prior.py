@@ -339,6 +339,10 @@ class GlobalEquilibriumHarmonicPrior(LocalEquilibriumHarmonicPrior):
         for i, temp in enumerate(T):
             self.RMSD_d[temp] = np.ones_like(RMSD[i]) * float(temp)
 
+        
+        logging.debug(f"Fluctuation keys: {self.RMSD_d.keys()}")
+
+
     def sample_prior_from_data(self, batch_size, temp, n_dims=4):
         """
         Sample prior from data.
