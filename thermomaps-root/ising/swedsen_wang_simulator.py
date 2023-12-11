@@ -85,13 +85,9 @@ class IsingSwendsenWang:
                 self.snapshots.append(snapshot)
 
     def save_snapshots(self, filename: str, metadata: dict, observables_to_save: list):
-        with open(f"{filename}_metadata.json", "w") as file:
-            json.dump(metadata, file, indent=4)
-
+        snapshot_series_dict = {key: [d[key] for d in list_of_dicts] for key in self.snapshots[0]}
         for i, snapshot in enumerate(self.snapshots):
-            np.savez_compressed(f"{filename}_snapshot_{i}.npz",
-                                lattice=snapshot["lattice"],
-                                **{obs: snapshot["observables"][obs] for obs in observables_to_save if obs in snapshot["observables"]})
+            np.savez_compressed(f"{filename}_snapshot_{i}.npz", **snapshot_series_dict)
 
 if __name__ == "__main__":
     import argparse
