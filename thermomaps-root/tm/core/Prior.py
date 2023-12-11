@@ -337,7 +337,7 @@ class GlobalEquilibriumHarmonicPrior(LocalEquilibriumHarmonicPrior):
 
         self.RMSD_d = {}
         for i, temp in enumerate(T):
-            self.RMSD_d[temp] = np.ones_like(RMSD[i]) * float(temp)
+            self.RMSD_d[str(temp)] = np.ones_like(RMSD[i]) * float(temp)
 
         
         logging.debug(f"Fluctuation keys: {self.RMSD_d.keys()}")
