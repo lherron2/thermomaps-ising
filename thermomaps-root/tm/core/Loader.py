@@ -439,7 +439,7 @@ class Loader(Dataset):
             tuple: Tuple containing standardized control parameters and data.
         """
         x = torch.clone(self.data[index : index + 1])
-        temps = self.temps[index]
+        temps = str(self.temps[index])
         return temps, x.float()[0]
 
     def __len__(self):
