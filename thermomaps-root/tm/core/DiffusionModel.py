@@ -46,7 +46,6 @@ class DiffusionModel:
         diffusion_process,
         backbone,
         loader,
-        directory,
         pred_type,
         prior,
         rescale_func_name="no_rescale",
@@ -59,7 +58,6 @@ class DiffusionModel:
             diffusion_process: The diffusion process.
             backbone: The backbone model.
             loader: Data loader.
-            directory: Directory for model checkpoints and samples.
             pred_type: Type of prediction.
             prior: Prior distribution.
             control_ref (float): Control reference temperature.
@@ -69,7 +67,6 @@ class DiffusionModel:
         self.loader = loader
         self.BB = backbone
         self.DP = diffusion_process
-        self.directory = directory
         self.pred_type = pred_type
         self.rescale_func = RESCALE_FUNCS[rescale_func_name]
         self.prior = prior
@@ -132,13 +129,15 @@ class DiffusionTrainer(DiffusionModel):
         diffusion_process,
         backbone,
         loader,
-        directory,
+        model_dir,
         pred_type,
         prior,
         optim=None,
         scheduler=None,
         rescale_func_name="density",
         RESCALE_FUNCS=RESCALE_FUNCS,
+        device=0,
+        identifer="model"
     ):
         """
         Initialize a DiffusionTrainer.
@@ -147,12 +146,10 @@ class DiffusionTrainer(DiffusionModel):
             diffusion_process: The diffusion process.
             backbone: The backbone model.
             loader: Data loader.
-            directory: Directory for model checkpoints and samples.
             pred_type: Type of prediction.
             prior: Prior distribution.
             optim: Optimizer.
             scheduler: Learning rate scheduler.
-            control_ref (float): Control reference temperature.
             rescale_func_name (str): Name of the rescaling function.
             RESCALE_FUNCS (dict): Dictionary of rescaling functions.
         """
@@ -160,13 +157,14 @@ class DiffusionTrainer(DiffusionModel):
             diffusion_process,
             backbone,
             loader,
-            directory,
             pred_type,
             prior,
-            control_ref,
             rescale_func_name,
             RESCALE_FUNCS,
         )
+
+        self.model_dir = model_dir
+        self.identifier = identifier
 
     def loss_function(self, e, e_pred, weight, loss_type="l2"):
         """
@@ -252,7 +250,7 @@ class DiffusionTrainer(DiffusionModel):
             if self.BB.scheduler:
                 self.BB.scheduler.step()
 
-            self.BB.save_state(self.directory, epoch)
+            self.BB.save_state(self.model_dir, epoch, identifier=self.identifier)
 
     def train_step(self, b, t, prior, **kwargs):
         """

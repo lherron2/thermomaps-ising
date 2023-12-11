@@ -82,11 +82,11 @@ class Backbone(nn.Module):
         self.scheduler = default(scheduler_dict["multistep"], scheduler)
 
     @staticmethod
-    def get_model_path(directory, epoch):
+    def get_model_path(model_dir, epoch, identifier='model'):
         """Get the model path for saving."""
-        return os.path.join(directory.model_path, f"{directory.identifier}_{epoch}.pt")
+        return os.path.join(model_dir, f"{identifier}_{epoch}.pt")
 
-    def save_state(self, directory, epoch):
+    def save_state(self, model_dir, epoch, identifier='model'):
         """
         Save internal state of the backbone model.
 
@@ -102,11 +102,11 @@ class Backbone(nn.Module):
             "optim": self.optim.state_dict(),
             "epoch": epoch,
         }
-        os.makedirs(directory.model_path, exist_ok=True)
-        save_path = self.get_model_path(directory, epoch)
+        os.makedirs(model_dir, exist_ok=True)
+        save_path = self.get_model_path(model_dir, epoch, identifier=identifier)
         torch.save(states, save_path)
 
-    def load_state(self, directory, epoch):
+    def load_state(self, model_dir, epoch, identifier='model', device=0):
         """
         Load internal state of the backbone model.
 
@@ -118,12 +118,12 @@ class Backbone(nn.Module):
             state_dict: Loaded state dictionary.
         """
         state_dict = torch.load(
-            self.get_model_path(directory, epoch),
-            map_location=torch.device(directory.device),
+            self.get_model_path(model_dir, epoch, identifier=identifier),
+            map_location=torch.device(device),
         )
         return state_dict
 
-    def load_model(self, directory, epoch):
+    def load_model(self, model_dir, epoch, identifier='model', device=0):
         """
         Load model, optimizer, and starting epoch from state dict.
 
@@ -134,7 +134,7 @@ class Backbone(nn.Module):
         Returns:
             None
         """
-        state_dict = self.load_state(directory, epoch)
+        state_dict = self.load_state(model_dir, epoch, identifier=identifier, device=device)
         self.model.load_state_dict(state_dict["model"])
         self.optim.load_state_dict(state_dict["optim"])
         self.start_epoch = int(state_dict["epoch"]) + 1
