@@ -425,5 +425,4 @@ class GlobalEquilibriumHarmonicPrior(LocalEquilibriumHarmonicPrior):
             samp = self.sample_prior_from_data(batch_size, temp, n_dims=n_dims)
         if sample_type == "from_fit":
             samp = self.sample_prior_from_fit(batch_size, temp, n_dims=n_dims)
-        print(samp.shape)
-        return samp
+         return samp
