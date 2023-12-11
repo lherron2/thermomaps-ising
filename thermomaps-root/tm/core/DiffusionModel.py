@@ -1,6 +1,6 @@
 import torch
 import os
-import np
+import numpy as np
 
 
 def temperature_density_rescaling(std_temp, ref_temp):
