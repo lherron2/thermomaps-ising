@@ -313,7 +313,7 @@ class Loader(Dataset):
         # If control_dims is not None, modify the slice objects for the control dimensions
         if control_dims is not None:
             for dim in control_dims:
-                control_slice[dim] = slice(control_dims[0], control_axis[1])
+                control_slice[dim] = slice(control_dims[0], control_dims[1])
 
         return tuple(control_slice)
 
