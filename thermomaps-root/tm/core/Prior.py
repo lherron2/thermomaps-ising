@@ -422,7 +422,8 @@ class GlobalEquilibriumHarmonicPrior(LocalEquilibriumHarmonicPrior):
             torch.Tensor: Sampled values from the prior.
         """
         if sample_type == "from_data":
-            return self.sample_prior_from_data(batch_size, temp, n_dims=n_dims)
+            samp = self.sample_prior_from_data(batch_size, temp, n_dims=n_dims)
         if sample_type == "from_fit":
             samp = self.sample_prior_from_fit(batch_size, temp, n_dims=n_dims)
-            return samp
+        print(samp.shape)
+        return samp
