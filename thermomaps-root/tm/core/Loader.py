@@ -285,9 +285,9 @@ class Loader(Dataset):
         self.num_channels = self.data.shape[1]
         self.num_dims = len(self.data.shape)
 
-        # Build slice objects to retrieve control params and batch from Tensor
-        self.control_slice = self.build_control_slice(control_axis, control_dims, num_dims)
-        self.batch_slice = self.build_batch_slice(num_dims)
+        # Build slice objects to retrieve control params and batch from Tensor.
+        self.control_slice = self.build_control_slice(control_axis, control_dims, self.num_dims)
+        self.batch_slice = self.build_batch_slice(self.num_dims)
 
         # Apply the specified transform to the data
         self.transform = TRANSFORMS[transform_type](self.data)
