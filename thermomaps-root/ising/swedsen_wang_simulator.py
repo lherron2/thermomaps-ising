@@ -78,10 +78,9 @@ class IsingSwendsenWang:
         for i in range(steps):
             self.swendsen_wang_step()
             if i % sampling_frequency == 0:
-                snapshot = {
-                    'lattice': self.lattice.copy(),
-                    'observables': {name: obs.evaluate(self.lattice) for name, obs in observables.items()}
-                }
+                snapshot = {'lattice': self.lattice.copy()}
+                for name, obs in observables.items():
+                    snapshot[name] = obs.evaluate(self.lattice)
                 self.snapshots.append(snapshot)
 
     def save_snapshots(self, filename: str, metadata: dict, observables_to_save: list):
