@@ -86,8 +86,7 @@ class IsingSwendsenWang:
 
     def save_snapshots(self, filename: str, metadata: dict, observables_to_save: list):
         snapshot_series_dict = {key: [d[key] for d in self.snapshots] for key in self.snapshots[0]}
-        for i, snapshot in enumerate(self.snapshots):
-            np.savez_compressed(f"{filename}_snapshot_{i}.npz", **snapshot_series_dict)
+        np.savez_compressed(f"{filename}.npz", **snapshot_series_dict)
 
 if __name__ == "__main__":
     import argparse
