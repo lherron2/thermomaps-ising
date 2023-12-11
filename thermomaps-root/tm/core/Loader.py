@@ -234,13 +234,12 @@ class Loader(Dataset):
 
     def __init__(
         self,
-        num_dims: int = 4,
         data: torch.Tensor = None,
         temperatures: np.ndarray = None,
         transform_type: str = "whiten",
         control_axis: int = 1,
         control_dims: tuple = (3,5),
-        dequantize: bool = False,
+        dequantize: bool = True,
         dequantize_type: str = "normal",
         dequantize_scale: float = 1e-2,
         TRANSFORMS: dict = TRANSFORMS,
@@ -251,7 +250,6 @@ class Loader(Dataset):
 
         Args:
             directory (Directory): Data directory.
-            num_dims (int, optional): Number of dimensions. Defaults to 4.
             transform_type (str, optional): Type of data transformation. Defaults to "whiten".
             control_tuple (tuple, optional): Control parameter settings. Defaults to ((1),(3,5)).
             dequantize (bool, optional): Whether to apply dequantization. Defaults to False.
@@ -315,7 +313,7 @@ class Loader(Dataset):
         # If control_dims is not None, modify the slice objects for the control dimensions
         if control_dims is not None:
             for dim in control_dims:
-                control_slice[dim] = slice(control_dims[0], control_dims[1])
+                control_slice[dim] = slice(control_dims[0], control_axis[1])
 
         return tuple(control_slice)
 
