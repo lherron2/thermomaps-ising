@@ -18,7 +18,7 @@ class Energy:
 
 class Magnetization:
     def compute(self, lattice: np.ndarray) -> float:
-        return np.sum(lattice)
+        return np.mean(lattice.ravel())
 
 
 class IsingSwendsenWang:
