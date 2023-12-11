@@ -137,7 +137,7 @@ class DiffusionTrainer(DiffusionModel):
         rescale_func_name="density",
         RESCALE_FUNCS=RESCALE_FUNCS,
         device=0,
-        identifer="model"
+        identifier="model"
     ):
         """
         Initialize a DiffusionTrainer.
