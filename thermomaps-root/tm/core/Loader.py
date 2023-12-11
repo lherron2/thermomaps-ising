@@ -266,6 +266,8 @@ class Loader(Dataset):
         # Check the type of 'data' and load it accordingly
         if isinstance(data, str):
             self.data = torch.from_numpy(np.load(data)).float()
+        elif isinstance(data, np.ndarray):
+            self.data = torch.from_numpy(data).float()
         elif isinstance(data, torch.Tensor):
             self.data = data
 
