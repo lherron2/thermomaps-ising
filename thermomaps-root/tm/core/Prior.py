@@ -2,7 +2,9 @@ import torch
 from scipy.optimize import curve_fit
 import numpy as np
 from typing import Any, Callable, Dict, List
+import logging
 
+logging.basicConfig(level=logging.DEBUG)
 
 def temperature_density_rescaling(std_temp, ref_temp):
     """
@@ -325,7 +327,7 @@ class GlobalEquilibriumHarmonicPrior(LocalEquilibriumHarmonicPrior):
         self.cutoff = 1e-2
         self.mult = None
 
-        T = [float(k.split("_")[0]) for k in data.keys()]
+        T = [float(str(k).split("_")[0]) for k in data.keys()]
         RMSD = np.concatenate([rmsd(v, k) for k, v in data.items()], axis=0)
 
         for i, temp in enumerate(T):
@@ -334,8 +336,8 @@ class GlobalEquilibriumHarmonicPrior(LocalEquilibriumHarmonicPrior):
         self.params = parallel_curve_fit(self.fit, T, RMSD, bounds=BOUNDS["linear"])
 
         self.RMSD_d = {}
-        for i, temp in enumerate(data.keys()):
-            self.RMSD_d[temp] = np.ones_like(RMSD[i]) * float(temp.split("_")[0])
+        for i, temp in enumerate(T):
+            self.RMSD_d[temp] = np.ones_like(RMSD[i]) * float(temp)
 
     def sample_prior_from_data(self, batch_size, temp, n_dims=4):
         """
