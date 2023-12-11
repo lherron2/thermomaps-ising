@@ -6,7 +6,7 @@ class Energy:
     def __init__(self, J: float = 1.0):
         self.J = J  # Interaction energy
 
-    def compute(self, lattice: np.ndarray) -> float:
+    def evaluate(self, lattice: np.ndarray) -> float:
         energy = 0.0
         size = len(lattice)
         for i in range(size):
@@ -17,7 +17,7 @@ class Energy:
         return energy / 2  # Each pair counted twice
 
 class Magnetization:
-    def compute(self, lattice: np.ndarray) -> float:
+    def evaluate(self, lattice: np.ndarray) -> float:
         return np.mean(lattice.ravel())
 
 
