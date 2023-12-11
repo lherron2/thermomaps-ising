@@ -230,7 +230,7 @@ class DiffusionTrainer(DiffusionModel):
                     t,
                     self.prior,
                     batch_size=int(b.shape[0]),
-                    temp=unstd_control,
+                    temp=str(unstd_control),
                     sample_type="from_data",
                     n_dims=int(b.shape[1]) - 1,
                 )
