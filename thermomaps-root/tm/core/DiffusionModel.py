@@ -393,7 +393,7 @@ class SteeredDiffusionSampler(DiffusionSampler):
         diffusion_process,
         backbone,
         loader,
-        directory,
+        sample_dir,
         pred_type,
         prior,
         rescale_func_name="no_rescale",
@@ -407,21 +407,23 @@ class SteeredDiffusionSampler(DiffusionSampler):
             diffusion_process: The diffusion process.
             backbone: The backbone model.
             loader: Data loader.
-            directory: Directory for model checkpoints and samples.
             pred_type: Type of prediction.
             prior: Prior distribution.
             rescale_func_name (str): Name of the rescaling function.
             RESCALE_FUNCS (dict): Dictionary of rescaling functions.
             kwargs: Additional keyword arguments.
         """
-        self.loader = loader
-        self.BB = backbone
-        self.DP = diffusion_process
-        self.directory = directory
-        self.pred_type = pred_type
-        self.rescale_func = RESCALE_FUNCS[rescale_func_name]
-        self.prior = prior
-        self.kwargs = kwargs
+        super().__init__(
+            diffusion_process,
+            backbone,
+            loader,
+            sample_dir,
+            pred_type,
+            prior,
+            rescale_func_name,
+            RESCALE_FUNCS,
+            **kwargs,
+        )
 
     def denoise_step(self, b_t, t, t_next, control=None):
         """
