@@ -324,12 +324,12 @@ class IsingSwendsenWang:
                 if not self.snapshots:
                     # Initialize the dictionary with lists
                     self.snapshots = {'lattice': [self.lattice.copy()]}
-                    for obs in observables.items():
+                    for obs in observables:
                         self.snapshots[obs.name] = [obs.evaluate(self.lattice)]
                 else:
                     # Append to the existing lists
                     self.snapshots['lattice'].append(self.lattice.copy())
-                    for obs in observables.items():
+                    for obs in observables:
                         self.snapshots[obs.name].append(obs.evaluate(self.lattice))
 
         # Convert lists to numpy arrays
