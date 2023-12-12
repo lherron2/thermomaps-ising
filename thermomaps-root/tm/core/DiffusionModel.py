@@ -287,7 +287,7 @@ class DiffusionSampler(DiffusionModel):
         diffusion_process,
         backbone,
         loader,
-        directory,
+        sample_dir,
         pred_type,
         prior,
         rescale_func_name="density",
@@ -300,7 +300,6 @@ class DiffusionSampler(DiffusionModel):
             diffusion_process: The diffusion process.
             backbone: The backbone model.
             loader: Data loader.
-            directory: Directory for model checkpoints and samples.
             pred_type: Type of prediction.
             prior: Prior distribution.
             rescale_func_name (str): Name of the rescaling function.
@@ -310,12 +309,14 @@ class DiffusionSampler(DiffusionModel):
             diffusion_process,
             backbone,
             loader,
-            directory,
             pred_type,
             prior,
             rescale_func_name,
             RESCALE_FUNCS,
         )
+
+        self.sample_dir = sample_dir
+        os.makedirs(self.sample_dir, exist_ok=True)
 
     def sample_batch(self, **prior_kwargs):
         """
@@ -349,7 +350,7 @@ class DiffusionSampler(DiffusionModel):
             temperature: Temperature for saving.
             save_idx (int): Index for saving.
         """
-        save_path = os.path.join(self.directory.sample_path, f"{temperature}K")
+        save_path = os.path.join(self.sample_dir, f"{temperature}K")
         os.makedirs(save_path, exist_ok=True)
         np.savez_compressed(
             os.path.join(save_path, f"{save_prefix}_idx={save_idx}.npz"), traj=batch
