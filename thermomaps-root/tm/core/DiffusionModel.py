@@ -52,6 +52,7 @@ class DiffusionModel:
         prior,
         rescale_func_name="no_rescale",
         RESCALE_FUNCS=RESCALE_FUNCS,
+        **kwargs
     ):
         """
         Initialize a DiffusionModel.
@@ -292,6 +293,7 @@ class DiffusionSampler(DiffusionModel):
         prior,
         rescale_func_name="density",
         RESCALE_FUNCS=RESCALE_FUNCS,
+        **kwargs
     ):
         """
         Initialize a DiffusionSampler.
@@ -313,6 +315,7 @@ class DiffusionSampler(DiffusionModel):
             prior,
             rescale_func_name,
             RESCALE_FUNCS,
+            **kwargs
         )
 
         self.sample_dir = sample_dir
