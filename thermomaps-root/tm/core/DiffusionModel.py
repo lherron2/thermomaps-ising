@@ -385,7 +385,7 @@ class DiffusionSampler(DiffusionModel):
 class SteeredDiffusionSampler(DiffusionSampler):
     """
     A DiffusionModel consists of instances of a DiffusionProcess, Backbone,
-    Loader, and Directory objects.
+    and Loader objects.
     """
 
     def __init__(
