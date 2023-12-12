@@ -428,6 +428,8 @@ class SteeredDiffusionSampler(DiffusionSampler):
             **kwargs,
         )
 
+        self.kwargs = kwargs
+
     def denoise_step(self, b_t, t, t_next, control=None):
         """
         Wrapper which calls applies the (marginal) transition kernel
