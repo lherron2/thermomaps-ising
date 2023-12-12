@@ -166,6 +166,7 @@ class DiffusionTrainer(DiffusionModel):
         )
 
         self.model_dir = model_dir
+        os.makedirs(self.model_dir, exist_ok=True)
         self.identifier = identifier
 
     def loss_function(self, e, e_pred, weight, loss_type="l2"):
