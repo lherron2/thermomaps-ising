@@ -97,7 +97,7 @@ class MinMaxTransform(Transform):
         Returns:
             torch.Tensor: Transformed data.
         """
-        return (x - self.min_data) / 2 * (self.max_data - self.min_data)
+        return (x - self.min_data) / (2 * (self.max_data - self.min_data))
 
     def reverse(self, x):
         """
