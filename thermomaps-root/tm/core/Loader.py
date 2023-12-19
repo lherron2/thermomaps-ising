@@ -19,7 +19,7 @@ class Transform:
         pass
 
 
-class WhitenTransform(Transform):
+class NormalTransform(Transform):
     """
     Whitening data transform.
     """
@@ -149,7 +149,7 @@ class IdentityTransform(Transform):
 
 
 TRANSFORMS = {
-    "whiten": WhitenTransform,
+    "normal": NormalTransform,
     "min_max": MinMaxTransform,
     "identity": IdentityTransform,
 }
