@@ -236,7 +236,7 @@ class Loader(Dataset):
         self,
         data: torch.Tensor = None,
         temperatures: np.ndarray = None,
-        transform_type: str = "whiten",
+        transform_type: str = "normal",
         control_axis: int = 1,
         control_dims: tuple = (3,5),
         dequantize: bool = True,
