@@ -44,6 +44,7 @@ class Backbone(nn.Module):
         lr=1e-3,
         optim=None,
         scheduler=None,
+        interpolate=True,
     ):
         super().__init__()
 
@@ -55,7 +56,9 @@ class Backbone(nn.Module):
         )  # Ignore batch and channel dims
         target_shape = tuple([target_shape] * (num_dims - 2))
 
-        self.interp = Interpolater(data_shape, target_shape)
+        self.interpolate = interpolate
+        if self.interpolate:
+            self.interp = Interpolater(data_shape, target_shape)
         dim_vec = torch.ones(num_dims)
         dim_vec[0] = -1
         self.expand_batch_to_dims = tuple(dim_vec)
@@ -175,6 +178,7 @@ class ConvBackbone(Backbone):
         eval_mode="train",
         self_condition=True,
         scheduler=None,
+        interpolate=True
     ):
         super().__init__(
             model, data_shape, target_shape, num_dims, lr, optim, scheduler
@@ -198,13 +202,20 @@ class ConvBackbone(Backbone):
 
     def forward(self, batch, t):
         """Forward pass of the ConvBackbone."""
-        upsampled = self.interp.to_target(batch)
+        if self.interpolate:
+            upsampled = self.interp.to_target(batch)
+        else:
+            upsampled = batch
 
         self_condition = self.get_self_condition(upsampled, t)
         upsampled_out = self.model(
             upsampled.to(self.device), t.to(self.device), x_self_cond=self_condition
         )
-        batch_out = self.interp.from_target(upsampled_out.to("cpu"))
+        if self.interpolate:
+            batch_out = self.interp.from_target(upsampled_out.to("cpu"))
+        else:
+            batch_out = upsampled_out.to("cpu")
+
         return batch_out
 
 
