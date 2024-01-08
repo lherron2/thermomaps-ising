@@ -169,6 +169,8 @@ class DiffusionTrainer(DiffusionModel):
         self.model_dir = model_dir
         os.makedirs(self.model_dir, exist_ok=True)
         self.identifier = identifier
+        self.train_losses = []
+        self.test_losses = []
 
     def loss_function(self, e, e_pred, weight, loss_type="l2"):
         """
@@ -187,6 +189,9 @@ class DiffusionTrainer(DiffusionModel):
 
         def l1_loss(e, e_pred, weight):
             return (e - e_pred).abs().sum(sum_indices)
+        
+        def smooth_l1_loss(e, e_pred, weight):
+            return torch.nn.functional.smooth_l1_loss(e, e_pred, reduction='mean')
 
         def l2_loss(e, e_pred, weight):
             return (e - e_pred).pow(2).sum((1, 2, 3)).pow(0.5).mean()
@@ -233,28 +238,25 @@ class DiffusionTrainer(DiffusionModel):
                 logging.debug(f"{unstd_control}")
 
 
-                noise, noise_pred = self.train_step(
-                    b,
-                    t,
-                    self.prior,
-                    batch_size=int(b.shape[0]),
-                    temp=unstd_control,
-                    sample_type="from_data",
-                    n_dims=int(b.shape[1]) - 1,
-                )
-                loss = (
-                    self.loss_function(noise, noise_pred, weight, loss_type=loss_type)
-                    / grad_accumulation_steps
-                )
+                noise, noise_pred = self.train_step(b, t, self.prior, batch_size=int(b.shape[0]),
+                    temp=unstd_control, sample_type="from_data", n_dims=int(b.shape[1]) - 1,)
+
+                loss = (self.loss_function(noise, noise_pred, weight, loss_type=loss_type) / grad_accumulation_steps)
 
                 if i % grad_accumulation_steps == 0:
                     self.BB.optim.zero_grad()
+                    # append loss to loss list
+                    self.train_losses.append(loss.detach().cpu().numpy())
                     loss.backward()
                     self.BB.optim.step()
+
+                # generate samples to test loss against.
+
 
                 if i % print_freq == 0:
                     print(f"step: {i}, loss {loss.detach():.3f}")
             print(f"epoch: {epoch}")
+
             if self.BB.scheduler:
                 self.BB.scheduler.step()
 
