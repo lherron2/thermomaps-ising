@@ -119,7 +119,7 @@ class MetropolisHastingSampler(Sampler):
         """
         Perform one update step using the Metropolis-Hastings algorithm.
         """
-        for _ in range(self.size * self.size):
+        for _ in range(self.IM.size * self.IM.size):
             self.metropolis_hastings_step()
 
         return self.IM.lattice
@@ -128,7 +128,7 @@ class MetropolisHastingSampler(Sampler):
         """
         Perform a single Monte-Carlo sampling step using the Metropolis-Hastings algorithm.
         """
-        x, y = np.random.randint(self.size), np.random.randint(self.size)
+        x, y = np.random.randint(self.IM.size), np.random.randint(self.IM.size)
         delta_E = self.calculate_energy_change(x, y)
         if delta_E < 0 or np.random.rand() < np.exp(-delta_E / self.IM.temp):
             self.IM.lattice[x, y] *= -1
