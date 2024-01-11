@@ -1,7 +1,7 @@
 import torch
 from torch import vmap
 import logging
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
@@ -115,6 +115,9 @@ class VPDiffusion(DiffusionProcess):
         """
         alphas_t = self.alphas[t]
         noise = prior.sample(**prior_kwargs)
+        logging.debug(f"{noise.shape=}")
+        logging.debug(f"{x0.shape=}")
+
         x_t = self.bmul(x0, alphas_t.sqrt()) + self.bmul(noise, (1 - alphas_t).sqrt())
         return x_t, noise
 

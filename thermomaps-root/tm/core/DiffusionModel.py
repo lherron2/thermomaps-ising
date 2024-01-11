@@ -3,7 +3,7 @@ import os
 import numpy as np
 import logging
 
-logging.basicConfig(level=logging.DEBUG)
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def temperature_density_rescaling(std_temp, ref_temp):
@@ -194,7 +194,10 @@ class DiffusionTrainer(DiffusionModel):
         def VLB_loss(e, e_pred, weight):
             return (weight * ((e - e_pred).pow(2).sum(sum_indices)).pow(0.5)).mean()
 
-        loss_dict = {"l1": l1_loss, "l2": l2_loss, "VLB": VLB_loss}
+        def smooth_l1_loss(e, e_pred, weight):
+            return torch.nn.functional.smooth_l1_loss(e, e_pred)
+
+        loss_dict = {"l1": l1_loss, "l2": l2_loss, "VLB": VLB_loss, "smooth_l1": smooth_l1_loss}
 
         return loss_dict[loss_type](e, e_pred, weight)
 
@@ -230,7 +233,7 @@ class DiffusionTrainer(DiffusionModel):
                 t_prev = t - 1
                 t_prev[t_prev == -1] = 0
                 weight = self.DP.compute_SNR(t_prev) - self.DP.compute_SNR(t)
-
+                logging.debug(f"{b.shape=}")
                 target, output = self.train_step(b, t, self.prior, 
                     batch_size=len(b), temperatures=temperatures, sample_type="from_data") # prior kwargs
 
@@ -245,7 +248,7 @@ class DiffusionTrainer(DiffusionModel):
 
                 # generate samples to test loss against.
                 if i % print_freq == 0:
-                    print(f"step: {i}, loss {loss.detach():.3f}")
+                    logging.info(f"step: {i}, loss {loss.detach():.3f}")
             print(f"epoch: {epoch}")
             self.train_losses.append(np.mean(epoch_loss))
             if self.BB.scheduler:
