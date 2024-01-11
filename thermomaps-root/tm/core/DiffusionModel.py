@@ -79,8 +79,6 @@ class DiffusionModel:
         """
         Wrapper which calls applies the (marginal) transition kernel
         of the forward noising process.
-
-        Wrapper to allow the alphas to be sampled and reshaped.
         """
         return self.DP.forward_kernel(b_t, t, prior, **prior_kwargs)
 
@@ -88,19 +86,15 @@ class DiffusionModel:
         """
         Wrapper which calls applies the (marginal) transition kernel
         of the reverse noising process.
-
-        Wrapper to allow the alphas to be sampled and reshaped.
         """
         return self.DP.reverse_kernel(b_t, t, self.BB, self.pred_type)
 
-    def denoise_step(self, b_t, t, t_next):
+    def denoise_step(self, b_t, t, t_next, eta, **prior_kwargs):
         """
         Wrapper which calls applies the (marginal) transition kernel
         of the reverse noising process.
-
-        Wrapper to allow the alphas to be sampled and reshaped.
         """
-        b_t_next = self.DP.reverse_step(b_t, t, t_next, self.BB, self.pred_type)
+        b_t_next = self.DP.reverse_step(b_t, t, t_next, self.BB, self.pred_type, eta, self.prior, **prior_kwargs)
         return b_t_next
 
     def sample_times(self, num_times):
@@ -238,7 +232,7 @@ class DiffusionTrainer(DiffusionModel):
                 weight = self.DP.compute_SNR(t_prev) - self.DP.compute_SNR(t)
 
                 target, output = self.train_step(b, t, self.prior, 
-                    batch_size=len(b), temperature=temperatures, sample_type="from_data") # prior kwargs
+                    batch_size=len(b), temperatures=temperatures, sample_type="from_data") # prior kwargs
 
                 loss = (self.loss_function(target, output, weight, loss_type=loss_type) / grad_accumulation_steps)
 
@@ -425,14 +419,15 @@ class SteeredDiffusionSampler(DiffusionSampler):
 
         self.kwargs = kwargs
 
-    def denoise_step(self, b_t, t, t_next, gamma, control_dict):
+    def denoise_step(self, b_t, t, t_next, eta, gamma, control_dict, **prior_kwargs):
         """
         Wrapper which calls applies the (marginal) transition kernel
         of the reverse noising process.
 
         Wrapper to allow the alphas to be sampled and reshaped.
         """
-        b_t_next = self.DP.reverse_step(b_t, t, t_next, self.BB, self.pred_type)
+        # b_t_next = self.DP.reverse_step(b_t, t, t_next, self.BB, self.pred_type)
+        b_t_next = self.DP.reverse_step(b_t, t, t_next, self.BB, self.pred_type, eta, self.prior, **prior_kwargs)
         for channel, channel_control in control_dict.values():
             b_t_next[:, channel] = (1 - gamma) * b_t_next[:, channel] + gamma * channel_control
         return b_t_next
@@ -469,7 +464,7 @@ class SteeredDiffusionSampler(DiffusionSampler):
 
         return channel_dict
 
-    def sample_batch(self, gamma=0, batch_size=1000, temperature=1):
+    def sample_batch(self, eta=1, gamma=0, batch_size=1000, temperature=1):
         """
         Sample a batch of data.
 
@@ -479,7 +474,7 @@ class SteeredDiffusionSampler(DiffusionSampler):
         Returns:
             Tensor: Sampled batch.
         """
-        xt = self.prior.sample_prior(batch_size=batch_size, temperature=temperature)
+        xt = self.prior.sample_prior(batch_size=batch_size, temperatures=temperature)
         # stds = self.prior.fit_prior(**prior_kwargs)
 
         channel_control_dict = self.build_channel_dict(batch_size, self.prior, temperature)
@@ -488,6 +483,7 @@ class SteeredDiffusionSampler(DiffusionSampler):
         for t, t_next in time_pairs:
             t = torch.Tensor.repeat(t, batch_size)
             t_next = torch.Tensor.repeat(t_next, batch_size)
-            xt_next = self.denoise_step(xt, t, t_next, gamma=gamma, control_dict=channel_control_dict)
+            xt_next = self.denoise_step(xt, t, t_next, eta=eta, gamma=gamma, control_dict=channel_control_dict,
+                                        batch_size=batch_size, temperatures=temperature)
             xt = xt_next
         return xt

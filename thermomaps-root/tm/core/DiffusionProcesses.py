@@ -147,7 +147,7 @@ class VPDiffusion(DiffusionProcess):
 
         return x0_t, noise
 
-    def reverse_step(self, x_t, t, t_next, backbone, pred_type):
+    def reverse_step(self, x_t, t, t_next, backbone, pred_type, eta, prior, **prior_kwargs):
         """
         Stepwise transition kernel of the reverse process p(x_t-1|x_t).
 
@@ -162,10 +162,11 @@ class VPDiffusion(DiffusionProcess):
             torch.Tensor: Data at time t_next.
         """
         alphas_t_next = self.alphas[t_next]
+        alphas_t = self.alphas[t]
         x0_t, noise = self.reverse_kernel(x_t, t, backbone, pred_type)
-        xt_next = self.bmul(alphas_t_next.sqrt(), x0_t) + self.bmul(
-            (1 - alphas_t_next).sqrt(), noise
-        )
+        c1 = eta * ((1 - alphas_t / alphas_t_next) * (1 - alphas_t_next) / (1 - alphas_t)).sqrt()
+        c2 = ((1 - alphas_t_next) - c1**2).sqrt()
+        xt_next = self.bmul(alphas_t_next.sqrt(), x0_t) + self.bmul(c1, noise) + self.bmul(c2, prior.sample(**prior_kwargs))
         return xt_next
 
     def compute_SNR(self, t):
