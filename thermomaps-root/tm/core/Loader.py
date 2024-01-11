@@ -2,7 +2,9 @@ from torch.utils.data import Dataset
 import torch
 from tm.core.Directory import Directory
 import numpy as np
+import logging
 
+logger = logging.getLogger(__name__)
 
 class Transform:
     """
@@ -438,8 +440,12 @@ class Loader(Dataset):
         Returns:
             tuple: Tuple containing standardized control parameters and data.
         """
-        x = torch.clone(self.data[index : index + 1])
+        x = torch.clone(self.data[index])
         temps = str(self.temps[index])
+
+        mag = abs(x.sum())/x.shape[-1]**2
+
+        logging.debug(f"Fetching sample with magnetization {mag} and temperature {temps}")
         return temps, x.float()[0]
 
     def __len__(self):

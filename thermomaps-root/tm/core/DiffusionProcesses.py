@@ -1,5 +1,8 @@
 import torch
 from torch import vmap
+import logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 def polynomial_noise(t, alpha_max, alpha_min, s=1e-5):
@@ -111,7 +114,7 @@ class VPDiffusion(DiffusionProcess):
             tuple: Tuple containing x_t and noise.
         """
         alphas_t = self.alphas[t]
-        noise = prior.sample_prior(**prior_kwargs)
+        noise = prior.sample(**prior_kwargs)
         x_t = self.bmul(x0, alphas_t.sqrt()) + self.bmul(noise, (1 - alphas_t).sqrt())
         return x_t, noise
 
