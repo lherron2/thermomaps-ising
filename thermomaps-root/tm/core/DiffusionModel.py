@@ -1,10 +1,10 @@
 import torch
 import os
 import numpy as np
-import logging
 
-logging.basicConfig(level=logging.INFO)
+import logging
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 def temperature_density_rescaling(std_temp, ref_temp):
     """
@@ -219,21 +219,31 @@ class DiffusionTrainer(DiffusionModel):
             batch_size (int): Batch size.
             loss_type (str): Type of loss function.
         """
+
+        from sklearn.model_selection import train_test_split
+
+
         train_loader = torch.utils.data.DataLoader(
-            self.loader,
+            self.train_loader,
+            batch_size=batch_size,
+            shuffle=True,
+        )
+
+        test_loader = torch.utils.data.DataLoader(
+            self.test_loader,
             batch_size=batch_size,
             shuffle=True,
         )
 
         for epoch in range(num_epochs):
-            epoch_loss = []
+            epoch_train_loss = []
             epoch += self.BB.start_epoch
             for i, (temperatures, b) in enumerate(train_loader, 0):
                 t = self.sample_times(b.size(0))
                 t_prev = t - 1
                 t_prev[t_prev == -1] = 0
                 weight = self.DP.compute_SNR(t_prev) - self.DP.compute_SNR(t)
-                logging.debug(f"{b.shape=}")
+                # logging.debug(f"{b.shape=}")
                 target, output = self.train_step(b, t, self.prior, 
                     batch_size=len(b), temperatures=temperatures, sample_type="from_data") # prior kwargs
 
@@ -241,16 +251,31 @@ class DiffusionTrainer(DiffusionModel):
 
                 if i % grad_accumulation_steps == 0:
                     self.BB.optim.zero_grad()
-                    # append loss to loss list
-                    epoch_loss.append(loss.detach().cpu().numpy())
+                    epoch_train_loss.append(loss.detach().cpu().numpy())
                     loss.backward()
                     self.BB.optim.step()
 
-                # generate samples to test loss against.
                 if i % print_freq == 0:
-                    logging.info(f"step: {i}, loss {loss.detach():.3f}")
-            print(f"epoch: {epoch}")
-            self.train_losses.append(np.mean(epoch_loss))
+                    print(f"step: {i}, loss {loss.detach():.3f}")
+
+            with torch.no_grad():
+                epoch_test_loss = []
+                for i, (temperatures, b) in enumerate(test_loader, 0):
+                    t = self.sample_times(b.size(0))
+                    t_prev = t - 1
+                    t_prev[t_prev == -1] = 0
+                    weight = self.DP.compute_SNR(t_prev) - self.DP.compute_SNR(t)
+                    target, output = self.train_step(b, t, self.prior, 
+                        batch_size=len(b), temperatures=temperatures, sample_type="from_data")
+                    loss = self.loss_function(target, output, weight, loss_type=loss_type)
+                    epoch_test_loss.append(loss.detach().cpu().numpy())
+
+
+            self.train_losses.append(np.mean(epoch_train_loss))
+            self.test_losses.append(np.mean(epoch_test_loss))
+
+            print(f"epoch: {epoch} | train loss: {self.train_losses[-1]:.3f} | test loss: {self.test_losses[-1]:.3f}")
+
             if self.BB.scheduler:
                 self.BB.scheduler.step()
 
@@ -274,7 +299,7 @@ class DiffusionTrainer(DiffusionModel):
         if self.pred_type == "noise":
             return noise, noise_pred
         elif self.pred_type == "x0":
-            return b_0, b_t
+            return b, b_0
 
 
 class DiffusionSampler(DiffusionModel):
@@ -357,7 +382,7 @@ class DiffusionSampler(DiffusionModel):
             os.path.join(save_path, f"{save_prefix}_idx={save_idx}.npz"), traj=batch
         )
 
-    def sample_loop(self, num_samples, batch_size, save_prefix, temperature, n_ch):
+    def sample_loop(self, num_samples, batch_size, save_prefix, temperature, gamma, eta):
         """
         Sampling loop.
 
@@ -373,7 +398,7 @@ class DiffusionSampler(DiffusionModel):
             batch_size = num_samples
         with torch.no_grad():
             for save_idx in range(n_runs):
-                x0 = self.sample_batch(batch_size=batch_size, temperature=temperature, sample_type="from_fit")
+                x0 = self.sample_batch(eta=eta, gamma=gamma, batch_size=batch_size, temperature=temperature, sample_type="from_fit")
                 self.save_batch(x0, save_prefix, temperature, save_idx)
 
 
@@ -431,7 +456,8 @@ class SteeredDiffusionSampler(DiffusionSampler):
         """
         # b_t_next = self.DP.reverse_step(b_t, t, t_next, self.BB, self.pred_type)
         b_t_next = self.DP.reverse_step(b_t, t, t_next, self.BB, self.pred_type, eta, self.prior, **prior_kwargs)
-        for channel, channel_control in control_dict.values():
+        for channel, channel_control in control_dict.items():
+            logger.debug(f"Setting channel {channel} to {channel_control}")
             b_t_next[:, channel] = (1 - gamma) * b_t_next[:, channel] + gamma * channel_control
         return b_t_next
     
@@ -449,25 +475,18 @@ class SteeredDiffusionSampler(DiffusionSampler):
             Dict: Dictionary of the conditional values for each channel.
         """
 
-        fluctuation_channels = prior.channels_info["fluctuation"]
-        num_fluctuation_channels = len(fluctuation_channels)
+        fluct_channels = prior.channels_info["fluctuation"]
+        num_fluct_channels = len(fluct_channels)
         channel_slice = [batch_size] + [1] + list(prior.shape[1:])  # each channel is treated individually
         channel_dict = {}
+        temperatures = torch.full((num_fluct_channels,), temperature)
 
-        # Check if temperature is a scalar or a vector
-        if isinstance(temperature, torch.Tensor):
-            if len(temperature) != num_fluctuation_channels:
-                raise ValueError("Length of temperature vector must be equal to num_fluctuation_channels")
-            temperatures = temperature
-        else:
-            temperatures = torch.full((num_fluctuation_channels,), temperature)
-
-        for channel, temp in zip(fluctuation_channels, temperatures):
-            channel_dict[channel] = torch.full(channel_slice, temp)
-
+        for channel, temp in zip(fluct_channels, temperatures):
+            channel_dict[channel] = temp
+        # logging.debug(f"{channel_dict=}")
         return channel_dict
 
-    def sample_batch(self, eta=1, gamma=0, batch_size=1000, temperature=1):
+    def sample_batch(self, eta=1, gamma=0, batch_size=1000, temperature=1, **kwargs):
         """
         Sample a batch of data.
 
@@ -477,7 +496,12 @@ class SteeredDiffusionSampler(DiffusionSampler):
         Returns:
             Tensor: Sampled batch.
         """
-        xt = self.prior.sample_prior(batch_size=batch_size, temperatures=temperature)
+        coord_channels = self.prior.channels_info["coordinate"]
+        num_coord_channels = len(coord_channels)
+        prior_formatted_temps = torch.Tensor([[temperature]*num_coord_channels]*batch_size).T
+        logger.debug(f"{prior_formatted_temps}")
+
+        xt = self.prior.sample(batch_size=batch_size, temperatures=prior_formatted_temps)
         # stds = self.prior.fit_prior(**prior_kwargs)
 
         channel_control_dict = self.build_channel_dict(batch_size, self.prior, temperature)
@@ -487,6 +511,6 @@ class SteeredDiffusionSampler(DiffusionSampler):
             t = torch.Tensor.repeat(t, batch_size)
             t_next = torch.Tensor.repeat(t_next, batch_size)
             xt_next = self.denoise_step(xt, t, t_next, eta=eta, gamma=gamma, control_dict=channel_control_dict,
-                                        batch_size=batch_size, temperatures=temperature)
+                                        batch_size=batch_size, temperatures=prior_formatted_temps)
             xt = xt_next
         return xt
