@@ -1,6 +1,5 @@
 from torch.utils.data import Dataset
 import torch
-from tm.core.Directory import Directory
 import numpy as np
 import logging
 logger = logging.getLogger(__name__)

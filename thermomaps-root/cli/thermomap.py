@@ -2,14 +2,13 @@ import os
 import torch
 import argparse
 import numpy as np
-from tm.core.Backbone import ConvBackbone
-from tm.core.DiffusionModel import DiffusionTrainer, SteeredDiffusionSampler
-from tm.core.DiffusionProcesses import VPDiffusion
-from tm.core.Loader import Loader
-from tm.core.Prior import LocalEquilibriumHarmonicPrior, GlobalEquilibriumHarmonicPrior
-from tm.architectures.UNet2D_mid_attn import Unet2D
+from tm.core.backbone import ConvBackbone
+from tm.core.diffusion_model import DiffusionTrainer, SteeredDiffusionSampler
+from tm.core.diffusion_process import VPDiffusion
+from tm.core.loader import Loader
+from tm.core.prior import LocalEquilibriumHarmonicPrior, GlobalEquilibriumHarmonicPrior
+from tm.architectures.unet_2D_mid_attn import Unet2D
 from tm.core.utils import compute_model_dim
-from tm.core.Directory import Directory
 from cli.cli_utils import populate_args_from_config, save_dict_as_npy, load_diffusion_data
 
 

@@ -4,7 +4,6 @@ import numpy as np
 
 from slurmflow.serializer import ObjectSerializer
 from data.generic import Summary
-from data.dataset import MultiEnsembleDataset
 
 import argparse
 
@@ -23,13 +22,11 @@ class TrainingTracker:
 
 def train(args):
 
-    from tm.core.Backbone import ConvBackbone
-    from tm.core.DiffusionModel import DiffusionTrainer, SteeredDiffusionSampler
-    from tm.core.DiffusionProcesses import VPDiffusion
-    from tm.core.Loader import Loader
-    from tm.core.Prior import GlobalEquilibriumHarmonicPrior, UnitNormalPrior
-
-    from tm.architectures.UNet2D_mid_attn import Unet2D as Unet2D
+    from tm.core.backbone import ConvBackbone
+    from tm.core.diffusion_model import DiffusionTrainer
+    from tm.core.diffusion_process import VPDiffusion
+    from tm.core.prior import GlobalEquilibriumHarmonicPrior, UnitNormalPrior
+    from tm.architectures.unet_2d_mid_attn import Unet2D as Unet2D
 
     # Initialize the dataset
     OS = ObjectSerializer(args.train_loader_path)

@@ -3,7 +3,6 @@ import os
 from simpleconfig import ConfigParser
 from slurmflow.serializer import ObjectSerializer
 from slurmflow.driver import SlurmDriver
-from slurmflow.container import Process, Container
 
 
 from ising.base import IsingModel
