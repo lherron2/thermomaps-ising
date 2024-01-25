@@ -385,7 +385,7 @@ class DiffusionSampler(DiffusionModel):
             os.path.join(save_path, f"{save_prefix}_idx={save_idx}.npz"), traj=batch
         )
 
-    def sample_loop(self, num_samples, batch_size, save_prefix, temperature, gamma, eta):
+    def sample_loop(self, num_samples, batch_size, temperature, gamma=1, eta=1, save_prefix=None):
         """
         Sampling loop.
 
@@ -401,8 +401,15 @@ class DiffusionSampler(DiffusionModel):
             batch_size = num_samples
         with torch.no_grad():
             for save_idx in range(n_runs):
-                x0 = self.sample_batch(eta=eta, gamma=gamma, batch_size=batch_size, temperature=temperature, sample_type="from_fit")
-                self.save_batch(x0, save_prefix, temperature, save_idx)
+                batch = self.sample_batch(eta=eta, gamma=gamma, batch_size=batch_size, temperature=temperature, sample_type="from_fit")
+                if save_prefix:
+                    self.save_batch(batch, save_prefix, temperature, save_idx)
+                elif save_idx == 0:
+                    x = batch
+                else:
+                    x = torch.cat((x, batch), 0)
+        return x
+
 
 
 class SteeredDiffusionSampler(DiffusionSampler):
