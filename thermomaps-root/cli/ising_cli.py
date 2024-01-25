@@ -1,6 +1,6 @@
 import numpy as np
 import os
-from simpleconfig import ConfigParser
+from slurmflow.config import ConfigParser
 from slurmflow.serializer import ObjectSerializer
 from slurmflow.driver import SlurmDriver
 
