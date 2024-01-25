@@ -14,7 +14,7 @@ logger.setLevel(logging.INFO)
 logger.addHandler(logging.StreamHandler(sys.stdout))
 
 class MultiEnsembleDataset:
-    def __init__(self, trajectories: Union[Iterable[Trajectory], Iterable[str]], summary: Summary):
+    def __init__(self, trajectories: Union[Iterable[Trajectory], Iterable[str]], summary: Summary = Summary()):
         """
         Initialize a MultiEnsembleDataset.
 
