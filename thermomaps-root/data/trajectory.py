@@ -179,16 +179,16 @@ class EnsembleIsingTrajectory(EnsembleTrajectory):
             frame = frame
         elif len(frame.shape) == 2:
             frame = frame.reshape((1, *frame.shape)) 
-        logger.info(f"Adding frame of shape {frame.shape} to trajectory.")
+        logger.debug(f"Adding frame of shape {frame.shape} to trajectory.")
 
         if self.coordinates is None:
-            logger.info(f"Initializing trajectory with frame of shape {frame.shape}.")
+            logger.debug(f"Initializing trajectory with frame of shape {frame.shape}.")
             self.coordinates = frame
-            logger.info(f"Initialized trajectory with shape {self.coordinates.shape}.")
+            logger.debug(f"Initialized trajectory with shape {self.coordinates.shape}.")
         else:
-            logger.info(f"Concatenating frame of shape {frame.shape} to trajectory.")
+            logger.debug(f"Concatenating frame of shape {frame.shape} to trajectory.")
             self.coordinates = np.concatenate((self.coordinates, frame))
-            logger.info(f"Concatenated frame to trajectory with shape {self.coordinates.shape}.")
+            logger.debug(f"Concatenated frame to trajectory with shape {self.coordinates.shape}.")
 
 
 class MultiEnsembleTrajectory:
