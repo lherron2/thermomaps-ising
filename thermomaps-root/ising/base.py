@@ -54,7 +54,7 @@ class IsingModel:
         for _ in range(self.warmup):
             self.lattice = self.update()
 
-        logger.info(f"Finished warm-up steps.")
+        logger.debug(f"Finished warm-up steps.")
 
         # Perform the simulation steps
         for i in range(steps):
@@ -62,12 +62,12 @@ class IsingModel:
 
             # Sample the state of the system and the observables
             if i % sampling_frequency == 0:
-                logger.info(f"Adding frame {i} (shape = {self.lattice.shape}) to the trajectory.")
+                logger.debug(f"Adding frame {i} (shape = {self.lattice.shape}) to the trajectory.")
                 self.trajectory.add_frame(self.lattice)
 
         # Compute the observables and add them to the trajectory
         for obs in observables:
-            logger.info(f"Computing observable {obs.name}.")
+            logger.debug(f"Computing observable {obs.name}.")
             obs.evaluate(self.trajectory.coordinates)
             self.trajectory.add_observable(obs)
 
