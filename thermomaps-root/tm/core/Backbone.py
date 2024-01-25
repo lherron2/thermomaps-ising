@@ -8,7 +8,6 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-
 class Backbone(nn.Module):
     """
     Diffusion wrapper for instances of deep learning architectures.
