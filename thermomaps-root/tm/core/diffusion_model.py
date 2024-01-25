@@ -208,7 +208,7 @@ class DiffusionTrainer(DiffusionModel):
         self,
         num_epochs,
         grad_accumulation_steps=1,
-        print_freq=10,
+        print_freq=None,
         batch_size=128,
         loss_type="l2",
     ):
@@ -256,9 +256,9 @@ class DiffusionTrainer(DiffusionModel):
                     torch.nn.utils.clip_grad_norm_(self.BB.model.parameters(), 1.)
                     self.BB.optim.step()
 
-
-                if i % print_freq == 0:
-                    print(f"step: {i}, loss {loss.detach():.3f}")
+                if print_freq:
+                    if i % print_freq == 0:
+                        print(f"step: {i}, loss {loss.detach():.3f}")
             if self.test_loader:
                 with torch.no_grad():
                     epoch_test_loss = []
