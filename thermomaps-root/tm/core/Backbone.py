@@ -4,6 +4,10 @@ from torch.optim.lr_scheduler import MultiStepLR
 import os
 from tm.core.utils import Interpolater, default
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 
 class Backbone(nn.Module):
     """
@@ -70,7 +74,7 @@ class Backbone(nn.Module):
                 self.model.parameters(),
                 lr=lr,
                 weight_decay=False,
-                betas=(0.9, 0.99),
+                betas=(0.9, 0.999),
                 amsgrad=True,
                 eps=1e-9,
             )
@@ -176,7 +180,7 @@ class ConvBackbone(Backbone):
         lr=1e-3,
         optim=None,
         eval_mode="train",
-        self_condition=True,
+        self_condition=False,
         scheduler=None,
         interpolate=True
     ):

@@ -3,9 +3,8 @@ import torch
 from tm.core.Directory import Directory
 import numpy as np
 import logging
-
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 class Transform:
@@ -443,13 +442,13 @@ class Loader(Dataset):
             tuple: Tuple containing standardized control parameters and data.
         """
         x = torch.clone(self.data[index])
-        temps = str(self.temps[index])
+        temps = self.temps[index]
 
-        logging.debug(f"{x.shape}")
+        logger.debug(f"{x.shape}")
         mag = abs(x[0].sum())/x.shape[-1]**2
 
-        logging.debug(f"Fetching sample with magnetization {mag} and temperature {temps}")
-        return [float(temps)], x.float()
+        logger.debug(f"Fetching sample with magnetization {mag} and temperature {temps}")
+        return temps, x.float()
 
     def __len__(self):
         """

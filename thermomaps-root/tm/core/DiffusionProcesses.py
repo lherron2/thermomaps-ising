@@ -1,11 +1,12 @@
 import torch
 from torch import vmap
 import logging
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
-def polynomial_noise(t, alpha_max, alpha_min, s=1e-5):
+
+def polynomial_noise(t, alpha_max, alpha_min, s=1e-5, **kwargs):
     """
     Generate polynomial noise schedule used in Hoogeboom et. al.
 
@@ -25,9 +26,30 @@ def polynomial_noise(t, alpha_max, alpha_min, s=1e-5):
     alpha_schedule = torch.cumprod(a, 0)
     return alpha_schedule
 
+def get_beta_schedule(beta_start, beta_end, num_diffusion_timesteps):
+    betas = np.linspace(beta_start, beta_end, num_diffusion_timesteps, dtype=np.float64)
+    return betas
+
+def compute_alpha(beta, t):
+    beta = torch.cat([torch.zeros(1).to(beta.device), beta], dim=0)
+    a = (1 - beta).cumprod(dim=0).index_select(0, t).view(-1, 1, 1, 1)
+    return a
+
+def linear_beta(t, beta_start, beta_end, **kwargs):
+    def compute_alpha(beta, t):
+        beta = torch.cat([torch.zeros(1).to(beta.device), beta], dim=0)
+        a = (1 - beta).cumprod(dim=0).index_select(0, t).view(-1, 1, 1, 1)
+        return a
+    betas = np.linspace(beta_start, beta_end, len(num_diffusion_timesteps), dtype=np.float64)
+    alphas = torch.Tensor([compute_alpha(betas, torch.Tensor([t]).long()) for beta, t in zip(betas, range(num_timesteps-1))])
+    return alphas.squeeze()
+
+
+
 
 NOISE_FUNCS = {
     "polynomial": polynomial_noise,
+    'linear_beta': linear_beta
 }
 
 
@@ -43,6 +65,8 @@ class DiffusionProcess:
         noise_schedule,
         alpha_max,
         alpha_min,
+        beta_start,
+        beta_end,
         NOISE_FUNCS,
     ):
         """
@@ -57,9 +81,12 @@ class DiffusionProcess:
         """
         self.num_diffusion_timesteps = num_diffusion_timesteps
         self.times = torch.arange(num_diffusion_timesteps)
-        self.alphas = NOISE_FUNCS[noise_schedule](
-            torch.arange(num_diffusion_timesteps + 1), alpha_max, alpha_min
-        )
+        self.alphas = NOISE_FUNCS[noise_schedule](                
+            t=torch.arange(num_diffusion_timesteps + 1), alpha_max=alpha_max, alpha_min=alpha_min,
+                beta_start=beta_start, beta_end=beta_end
+            )
+
+            
 
 
 class VPDiffusion(DiffusionProcess):
@@ -73,6 +100,8 @@ class VPDiffusion(DiffusionProcess):
         noise_schedule="polynomial",
         alpha_max=20.0,
         alpha_min=0.01,
+        beta_start=0.001,
+        beta_end=0.02,
         NOISE_FUNCS=NOISE_FUNCS,
     ):
         """
@@ -86,7 +115,7 @@ class VPDiffusion(DiffusionProcess):
             NOISE_FUNCS (dict): Dictionary of noise functions.
         """
         super().__init__(
-            num_diffusion_timesteps, noise_schedule, alpha_max, alpha_min, NOISE_FUNCS
+            num_diffusion_timesteps, noise_schedule, alpha_max, alpha_min, beta_start, beta_end, NOISE_FUNCS
         )
 
         self.bmul = vmap(torch.mul)
@@ -115,8 +144,8 @@ class VPDiffusion(DiffusionProcess):
         """
         alphas_t = self.alphas[t]
         noise = prior.sample(**prior_kwargs)
-        logging.debug(f"{noise.shape=}")
-        logging.debug(f"{x0.shape=}")
+        logger.debug(f"{noise.shape=}")
+        logger.debug(f"{x0.shape=}")
 
         x_t = self.bmul(x0, alphas_t.sqrt()) + self.bmul(noise, (1 - alphas_t).sqrt())
         return x_t, noise
@@ -169,7 +198,7 @@ class VPDiffusion(DiffusionProcess):
         x0_t, noise = self.reverse_kernel(x_t, t, backbone, pred_type)
         c1 = eta * ((1 - alphas_t / alphas_t_next) * (1 - alphas_t_next) / (1 - alphas_t)).sqrt()
         c2 = ((1 - alphas_t_next) - c1**2).sqrt()
-        xt_next = self.bmul(alphas_t_next.sqrt(), x0_t) + self.bmul(c1, noise) + self.bmul(c2, prior.sample(**prior_kwargs))
+        xt_next = self.bmul(alphas_t_next.sqrt(), x0_t) + self.bmul(c2, noise) + self.bmul(c1, prior.sample(**prior_kwargs))
         return xt_next
 
     def compute_SNR(self, t):

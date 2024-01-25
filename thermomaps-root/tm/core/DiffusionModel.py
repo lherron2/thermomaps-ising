@@ -126,10 +126,11 @@ class DiffusionTrainer(DiffusionModel):
         self,
         diffusion_process,
         backbone,
-        loader,
+        train_loader,
         model_dir,
         pred_type,
         prior,
+        test_loader = None,
         optim=None,
         scheduler=None,
         rescale_func_name="density",
@@ -154,7 +155,7 @@ class DiffusionTrainer(DiffusionModel):
         super().__init__(
             diffusion_process,
             backbone,
-            loader,
+            train_loader,
             pred_type,
             prior,
             rescale_func_name,
@@ -164,6 +165,8 @@ class DiffusionTrainer(DiffusionModel):
         self.model_dir = model_dir
         os.makedirs(self.model_dir, exist_ok=True)
         self.identifier = identifier
+        self.test_loader = test_loader
+        self.train_loader = train_loader
         self.train_losses = []
         self.test_losses = []
 
@@ -220,20 +223,17 @@ class DiffusionTrainer(DiffusionModel):
             loss_type (str): Type of loss function.
         """
 
-        from sklearn.model_selection import train_test_split
-
-
         train_loader = torch.utils.data.DataLoader(
             self.train_loader,
             batch_size=batch_size,
             shuffle=True,
         )
-
-        test_loader = torch.utils.data.DataLoader(
-            self.test_loader,
-            batch_size=batch_size,
-            shuffle=True,
-        )
+        if self.test_loader:
+            test_loader = torch.utils.data.DataLoader(
+                self.test_loader,
+                batch_size=batch_size,
+                shuffle=True,
+            )
 
         for epoch in range(num_epochs):
             epoch_train_loss = []
@@ -253,31 +253,34 @@ class DiffusionTrainer(DiffusionModel):
                     self.BB.optim.zero_grad()
                     epoch_train_loss.append(loss.detach().cpu().numpy())
                     loss.backward()
+                    torch.nn.utils.clip_grad_norm_(self.BB.model.parameters(), 1.)
                     self.BB.optim.step()
+
 
                 if i % print_freq == 0:
                     print(f"step: {i}, loss {loss.detach():.3f}")
-
-            with torch.no_grad():
-                epoch_test_loss = []
-                for i, (temperatures, b) in enumerate(test_loader, 0):
-                    t = self.sample_times(b.size(0))
-                    t_prev = t - 1
-                    t_prev[t_prev == -1] = 0
-                    weight = self.DP.compute_SNR(t_prev) - self.DP.compute_SNR(t)
-                    target, output = self.train_step(b, t, self.prior, 
-                        batch_size=len(b), temperatures=temperatures, sample_type="from_data")
-                    loss = self.loss_function(target, output, weight, loss_type=loss_type)
-                    epoch_test_loss.append(loss.detach().cpu().numpy())
+            if self.test_loader:
+                with torch.no_grad():
+                    epoch_test_loss = []
+                    for i, (temperatures, b) in enumerate(test_loader, 0):
+                        t = self.sample_times(b.size(0))
+                        t_prev = t - 1
+                        t_prev[t_prev == -1] = 0
+                        weight = self.DP.compute_SNR(t_prev) - self.DP.compute_SNR(t)
+                        target, output = self.train_step(b, t, self.prior, 
+                            batch_size=len(b), temperatures=temperatures, sample_type="from_data")
+                        loss = self.loss_function(target, output, weight, loss_type=loss_type)
+                        epoch_test_loss.append(loss.detach().cpu().numpy())
 
 
             self.train_losses.append(np.mean(epoch_train_loss))
-            self.test_losses.append(np.mean(epoch_test_loss))
+            if self.test_loader:
+                self.test_losses.append(np.mean(epoch_test_loss))
 
             print(f"epoch: {epoch} | train loss: {self.train_losses[-1]:.3f} | test loss: {self.test_losses[-1]:.3f}")
 
-            if self.BB.scheduler:
-                self.BB.scheduler.step()
+            # if self.BB.scheduler:
+                # self.BB.scheduler.step()
 
             self.BB.save_state(self.model_dir, epoch, identifier=self.identifier)
 
@@ -498,7 +501,7 @@ class SteeredDiffusionSampler(DiffusionSampler):
         """
         coord_channels = self.prior.channels_info["coordinate"]
         num_coord_channels = len(coord_channels)
-        prior_formatted_temps = torch.Tensor([[temperature]*num_coord_channels]*batch_size).T
+        prior_formatted_temps = torch.Tensor([[temperature]*num_coord_channels]*batch_size)
         logger.debug(f"{prior_formatted_temps}")
 
         xt = self.prior.sample(batch_size=batch_size, temperatures=prior_formatted_temps)
