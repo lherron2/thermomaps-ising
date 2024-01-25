@@ -1,29 +1,45 @@
 import numpy as np
 import random
+import sys
 from typing import Callable, Dict, List, Type
 from abc import ABC, abstractmethod
+from data.trajectory import EnsembleIsingTrajectory
+from data.generic import Summary
+from ising.observables import Energy, Magnetization
+from slurmflow.serializer import ObjectSerializer
+
+
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+logger.addHandler(logging.StreamHandler(sys.stdout))
+
 
 class IsingModel:
-    def __init__(self, sampler: Type['Sampler'], size: int, warm_up: int, temp: float, Jx: float = 1.0, Jy: float = 1.0):
+    def __init__(self, sampler: Type['Sampler'], size: int, warmup: int, temp: float, Jx: float = 1.0, Jy: float = 1.0):
         """
         Initialize the base Ising model.
 
         Args:
             size (int): The size of the lattice.
-            warm_up (int): The number of warm-up steps.
+            warmup (int): The number of warm-up steps.
             temp (float): The temperature of the system.
             Jx (float, optional): The interaction energy along the x direction. Defaults to 1.0.
             Jy (float, optional): The interaction energy along the y direction. Defaults to 1.0.
         """
         self.size = size
         self.lattice = np.random.choice([-1, 1], (size, size))
-        self.warm_up = warm_up
+        self.warmup = warmup
         self.temp = temp
         self.Jx = Jx
         self.Jy = Jy
         self.snapshots = []
         sampler = sampler(self)
         self.update = sampler.update
+        self.trajectory = EnsembleIsingTrajectory(
+            summary = Summary(name="IsingModel", size=size, temperature=temp, Jx=Jx, Jy=Jy, sampler=sampler.name),
+            state_variables = Summary(temperature=temp)
+            )
 
     def simulate(self, steps: int, observables: List[Callable[[np.ndarray], float]], sampling_frequency: int):
         """
@@ -35,8 +51,10 @@ class IsingModel:
             sampling_frequency (int): The frequency at which to sample the state of the system and the observables.
         """
         # Perform the warm-up steps
-        for _ in range(self.warm_up):
+        for _ in range(self.warmup):
             self.lattice = self.update()
+
+        logger.info(f"Finished warm-up steps.")
 
         # Perform the simulation steps
         for i in range(steps):
@@ -44,38 +62,23 @@ class IsingModel:
 
             # Sample the state of the system and the observables
             if i % sampling_frequency == 0:
-                self.sample_state(observables)
+                logger.info(f"Adding frame {i} (shape = {self.lattice.shape}) to the trajectory.")
+                self.trajectory.add_frame(self.lattice)
 
-        return self.snapshots
+        # Compute the observables and add them to the trajectory
+        for obs in observables:
+            logger.info(f"Computing observable {obs.name}.")
+            obs.evaluate(self.trajectory.coordinates)
+            self.trajectory.add_observable(obs)
 
-    def sample_state(self, observables: List[Callable[[np.ndarray], float]]):
+        return self.trajectory
+
+    def save(self, filename: str, overwrite: bool = False):
         """
-        Sample the state of the system and the observables.
+        Save the trajectory to a file.
 
         Args:
-            observables (List[Callable[[np.ndarray], float]]): A list of observables to measure.
+            filename (str): The name of the file to save the trajectory to.
         """
-        if not self.snapshots:
-            # Initialize the dictionary with lists
-            self.snapshots = {'lattice': [self.lattice.copy()]}
-            for obs in observables:
-                self.snapshots[obs.name] = [obs.evaluate(self.lattice)]
-        else:
-            # Append to the existing lists
-            self.snapshots['lattice'].append(self.lattice.copy())
-            for obs in observables:
-                self.snapshots[obs.name].append(obs.evaluate(self.lattice))
-
-    def save_snapshots(self, filename: str, metadata: dict = None):
-        """
-        Save the snapshots of the system state and the observables to a file.
-
-        Args:
-            filename (str): The name of the file to save the snapshots to.
-            metadata (dict, optional): A dictionary of metadata to include in the file.
-        """
-        if metadata:
-            np.savez_compressed(f"{filename}.npz", **self.snapshots, **metadata)
-        else:
-            np.savez_compressed(f"{filename}.npz", **self.snapshots)
-
+        OS = ObjectSerializer(filename)
+        OS.serialize(self.trajectory, overwrite=overwrite)

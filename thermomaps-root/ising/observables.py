@@ -1,40 +1,10 @@
 import numpy as np
 from abc import ABC, abstractmethod
+from data.observables import Observable
 
-class Observable(ABC):
-    """
-    Abstract base class for observables in the Ising model.
-
-    An observable is a physical quantity that can be measured in a simulation.
-
-    Attributes:
-        name (str): The name of the observable.
-    """
-
-    def __init__(self, name: str):
-        """
-        Initialize an Observable.
-
-        Args:
-            name (str): The name of the observable.
-        """
-        # Name of the observable
-        self.name = name
-
-    @abstractmethod
-    def evaluate(self, lattice: np.ndarray) -> float:
-        """
-        Calculate the value of the observable for a given lattice.
-
-        This is an abstract method that must be overridden by subclasses.
-
-        Args:
-            lattice (np.ndarray): The lattice of spins.
-
-        Returns:
-            float: The value of the observable.
-        """
-        pass
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 class Energy(Observable):
     """
@@ -49,7 +19,7 @@ class Energy(Observable):
         Jy (float): The interaction energy along the y direction.
     """
 
-    def __init__(self, Jx: float = 1.0, Jy: float = 1.0):
+    def __init__(self, Jx: float = 1.0, Jy: float = 1.0, name: str = 'energy'):
         """
         Initialize an Energy observable.
 
@@ -61,7 +31,22 @@ class Energy(Observable):
         self.Jx = Jx  # Interaction energy along the x direction
         self.Jy = Jy  # Interaction energy along the y direction
 
-    def evaluate(self, lattice: np.ndarray) -> float:
+    def evaluate_frame(self, frame: np.ndarray) -> float:
+        energy = 0.0
+        size = len(frame)
+        # Iterate over each spin in the lattice
+        for i in range(size):
+            for j in range(size):
+                S = frame[i, j]
+                # Calculate the sum of the spins of the neighbors
+                neighbors_x = frame[(i+1)%size, j] + frame[(i-1)%size, j]
+                neighbors_y = frame[i, (j+1)%size] + frame[i, (j-1)%size]
+                # Add the interaction energy with the neighbors to the total energy
+                energy += -self.Jx * S * neighbors_x - self.Jy * S * neighbors_y
+        # Return the total energy, divided by 2 because each pair is counted twice
+        return energy / 2
+
+    def evaluate(self, time_series: np.ndarray) -> float:
         """
         Calculate the energy of a lattice.
 
@@ -71,19 +56,12 @@ class Energy(Observable):
         Returns:
             float: The energy of the lattice.
         """
-        energy = 0.0
-        size = len(lattice)
-        # Iterate over each spin in the lattice
-        for i in range(size):
-            for j in range(size):
-                S = lattice[i, j]
-                # Calculate the sum of the spins of the neighbors
-                neighbors_x = lattice[(i+1)%size, j] + lattice[(i-1)%size, j]
-                neighbors_y = lattice[i, (j+1)%size] + lattice[i, (j-1)%size]
-                # Add the interaction energy with the neighbors to the total energy
-                energy += -self.Jx * S * neighbors_x - self.Jy * S * neighbors_y
-        # Return the total energy, divided by 2 because each pair is counted twice
-        return energy / 2
+        energies = []
+        for frame in time_series:
+            energies.append(self.evaluate_frame(frame))
+        self.quantity = np.array(energies)
+
+        return self.quantity
 
 class Magnetization(Observable):
     """
@@ -102,7 +80,7 @@ class Magnetization(Observable):
         """
         super().__init__("magnetization")
 
-    def evaluate(self, lattice: np.ndarray) -> float:
+    def evaluate_frame(self, frame: np.ndarray) -> float:
         """
         Calculate the magnetization of a lattice.
 
@@ -113,4 +91,22 @@ class Magnetization(Observable):
             float: The magnetization of the lattice.
         """
         # Magnetization is the mean value of the spins
-        return np.mean(lattice.ravel())
+        return abs(np.mean(frame))
+
+    def evaluate(self, time_series: np.ndarray) -> float:
+        """
+        Calculate the magnetization of a lattice.
+
+        Args:
+            lattice (np.ndarray): The lattice of spins.
+
+        Returns:
+            float: The magnetization of the lattice.
+        """
+        magnetizations = []
+        for frame in time_series:
+            magnetizations.append(self.evaluate_frame(frame))
+        self.quantity = np.array(magnetizations)
+
+        return self.quantity
+        

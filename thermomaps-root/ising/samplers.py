@@ -4,6 +4,10 @@ from typing import Callable, Dict, List, Type
 from abc import ABC, abstractmethod
 from ising.base import IsingModel
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 class Sampler(ABC):
     """
     Abstract base class for samplers in the Ising model.
@@ -32,6 +36,7 @@ class Sampler(ABC):
 class SwendsenWangSampler(Sampler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.name = "SwendsenWang"
 
     def update(self):
         """
@@ -111,9 +116,10 @@ class SwendsenWangSampler(Sampler):
                 if should_flip[root]:
                     self.IM.lattice[x, y] *= -1
 
-class MetropolisHastingSampler(Sampler):
+class SingleSpinFlipSampler(Sampler):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.name = "SingleSpin"
 
     def update(self):
         """
