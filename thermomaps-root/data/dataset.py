@@ -3,7 +3,7 @@ from data.generic import Summary
 from typing import List, Dict, Union, Iterable
 from slurmflow.serializer import ObjectSerializer
 from sklearn.model_selection import ShuffleSplit
-from tm.core.Loader import Loader
+from tm.core.loader import Loader
 import numpy as np
 import pandas as pd
 
