@@ -49,8 +49,8 @@ class DiffusionModel:
         diffusion_process,
         backbone,
         loader,
-        pred_type,
         prior,
+        pred_type,
         rescale_func_name="no_rescale",
         RESCALE_FUNCS=RESCALE_FUNCS,
         **kwargs
@@ -127,9 +127,9 @@ class DiffusionTrainer(DiffusionModel):
         diffusion_process,
         backbone,
         train_loader,
-        model_dir,
-        pred_type,
         prior,
+        pred_type='noise',
+        model_dir=None,
         test_loader = None,
         optim=None,
         scheduler=None,
@@ -156,14 +156,15 @@ class DiffusionTrainer(DiffusionModel):
             diffusion_process,
             backbone,
             train_loader,
-            pred_type,
             prior,
+            pred_type,
             rescale_func_name,
             RESCALE_FUNCS,
         )
 
         self.model_dir = model_dir
-        os.makedirs(self.model_dir, exist_ok=True)
+        if self.model_dir:
+            os.makedirs(self.model_dir, exist_ok=True)
         self.identifier = identifier
         self.test_loader = test_loader
         self.train_loader = train_loader
@@ -259,6 +260,7 @@ class DiffusionTrainer(DiffusionModel):
                 if print_freq:
                     if i % print_freq == 0:
                         print(f"step: {i}, loss {loss.detach():.3f}")
+
             if self.test_loader:
                 with torch.no_grad():
                     epoch_test_loss = []
@@ -281,8 +283,8 @@ class DiffusionTrainer(DiffusionModel):
 
             # if self.BB.scheduler:
                 # self.BB.scheduler.step()
-
-            self.BB.save_state(self.model_dir, epoch, identifier=self.identifier)
+            if self.model_dir:
+                self.BB.save_state(self.model_dir, epoch, identifier=self.identifier)
 
     def train_step(self, b, t, prior, **kwargs):
         """
@@ -315,9 +317,9 @@ class DiffusionSampler(DiffusionModel):
         diffusion_process,
         backbone,
         loader,
-        sample_dir,
-        pred_type,
         prior,
+        pred_type='noise',
+        sample_dir=None,
         rescale_func_name="density",
         RESCALE_FUNCS=RESCALE_FUNCS,
         **kwargs
@@ -402,9 +404,9 @@ class DiffusionSampler(DiffusionModel):
         with torch.no_grad():
             for save_idx in range(n_runs):
                 batch = self.sample_batch(eta=eta, gamma=gamma, batch_size=batch_size, temperature=temperature, sample_type="from_fit")
-                if save_prefix:
+                if self.sample_dir and save_prefix:
                     self.save_batch(batch, save_prefix, temperature, save_idx)
-                elif save_idx == 0:
+                if save_idx == 0:
                     x = batch
                 else:
                     x = torch.cat((x, batch), 0)
@@ -423,9 +425,9 @@ class SteeredDiffusionSampler(DiffusionSampler):
         diffusion_process,
         backbone,
         loader,
-        sample_dir,
-        pred_type,
         prior,
+        pred_type,
+        sample_dir=None,
         rescale_func_name="no_rescale",
         RESCALE_FUNCS=RESCALE_FUNCS,
         **kwargs,
