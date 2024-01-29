@@ -346,9 +346,9 @@ class DiffusionSampler(DiffusionModel):
             RESCALE_FUNCS,
             **kwargs
         )
-
         self.sample_dir = sample_dir
-        os.makedirs(self.sample_dir, exist_ok=True)
+        if self.sample_dir:
+            os.makedirs(self.sample_dir, exist_ok=True)
 
     def sample_batch(self, **prior_kwargs):
         """
