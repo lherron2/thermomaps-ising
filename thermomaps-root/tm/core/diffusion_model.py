@@ -340,8 +340,8 @@ class DiffusionSampler(DiffusionModel):
             diffusion_process,
             backbone,
             loader,
-            pred_type,
             prior,
+            pred_type,
             rescale_func_name,
             RESCALE_FUNCS,
             **kwargs
