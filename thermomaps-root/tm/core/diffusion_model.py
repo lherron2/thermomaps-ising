@@ -278,8 +278,9 @@ class DiffusionTrainer(DiffusionModel):
             self.train_losses.append(np.mean(epoch_train_loss))
             if self.test_loader:
                 self.test_losses.append(np.mean(epoch_test_loss))
-
-            print(f"epoch: {epoch} | train loss: {self.train_losses[-1]:.3f} | test loss: {self.test_losses[-1]:.3f}")
+                print(f"epoch: {epoch} | train loss: {self.train_losses[-1]:.3f} | test loss: {self.test_losses[-1]:.3f}")
+            else:
+                print(f"epoch: {epoch} | train loss: {self.train_losses[-1]:.3f}")
 
             # if self.BB.scheduler:
                 # self.BB.scheduler.step()
