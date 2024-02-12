@@ -1,0 +1,1 @@
+This repo showcases the ability of Thermodynamic Maps to learn the phase transition of the 2D Ising model. The notebook supports the Ising model component of [Inferring phase transitions and critical exponents from limited observations with Thermodynamic Maps](https://arxiv.org/abs/2308.14885).
