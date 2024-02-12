@@ -44,11 +44,19 @@ class GlobalEquilibriumHarmonicPrior(UnitNormalPrior):
         logger.debug(f"{temperatures.shape=}")
         samples = torch.empty(full_shape)
 
-        assert (temperatures.shape[1] == self.num_coord_ch and 
-                (temperatures.shape[0] == 1 or temperatures.shape[0] == batch_size)), \
-        f"{temperatures.shape=}. Expected (1,{self.num_coord_ch}) or ({batch_size}, {self.num_coord_ch})"
-        
-        coord_variances = temperatures.unsqueeze(-1).unsqueeze(-1).expand(*coord_shape) # expand along batch and coordinate dims
+        #assert (temperatures.shape[1] == self.num_coord_ch and 
+        #        (temperatures.shape[0] == 1 or temperatures.shape[0] == batch_size)), \
+        #f"{temperatures.shape=}. Expected (1,{self.num_coord_ch}) or ({batch_size}, {self.num_coord_ch})"
+
+        temps_for_each_channel_bool = temperatures.shape[1] == self.num_coord_ch 
+        single_temp_provided_bool = temperatures.shape[0] == 1
+        temps_for_each_sample_in_batch_bool = temperatures.shape[0] == batch_size
+
+        if not temps_for_each_channel_bool and temps_for_each_sample_in_batch_bool:
+            temperatures = temperatures.unsqueeze(-1).unsqueeze(-1).expand(*coord_shape)
+            coord_variances = temperatures # expand along batch and coordinate dims
+        else:
+            coord_variances = temperatures.unsqueeze(-1).unsqueeze(-1).expand(*coord_shape) # expand along batch and coordinate dims
         fluct_variances = torch.full((fluct_shape), 1)
 
         variances = torch.cat((coord_variances, fluct_variances), dim=1)
